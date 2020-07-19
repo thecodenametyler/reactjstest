@@ -1,17 +1,17 @@
 import React, { Component } from 'react';
 import API from "../utils/API";
+import { LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
 
 class Survey extends Component {
   constructor() {
     super();
     this.state = {
-      survey: [],
-      slug: ''
+      survey: []
     }
   }
   async componentDidMount() {
-    this.state.slug = this.props.match.params.slug;
-    this.getSurvey(this.state.slug);
+    let slug = this.props.match.params.slug;
+    this.getSurvey(slug);
   };
   getSurvey(slug) {
     API.get('/'+slug+'.json').then((res) => {  
@@ -20,15 +20,37 @@ class Survey extends Component {
     .catch((err) => { console.log(err); });
   }
   renderSwitch(param) {
+    var result = "";
     switch(param.type) {
       case 'qcm':
-        var result = Object.keys(param.result).map((key) => [String(key), param.result[key]]);
-        return result;
+        result = Object.keys(param.result).reduce((array, key) => {
+          return [...array, {key: key, value: param.result[key]}]
+        }, []);
+
+        //https://flaviocopes.com/how-to-sort-array-of-objects-by-property-javascript/
+        //reorder array base on object key
+        result.sort((a, b) => (a.key > b.key) ? 1 : (a.key === b.key) ? ((a.value > b.value) ? 1 : -1) : -1 )
+        
+        var renderLineChart = (
+          <LineChart width={600} height={300} data={result} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+            <Line type="monotone" dataKey="value" stroke="#8884d8" />
+            <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
+            <XAxis dataKey="key" />
+            <YAxis />
+            <Tooltip />
+          </LineChart>
+        );
+
+        return renderLineChart;
       case 'numeric':
-        var result = (param.result.toString()).split();
+        result = parseInt(param.result, 10);
         return result;
       case 'date':
-        return param.result;
+        result = param.result.sort()
+        const dateList = result.map((res, index) =>
+          <li key={index}>{res}</li>
+        );
+        return <ul>{dateList}</ul>;
       default:
         return 'No case for type: ' + param.type;
     }
@@ -37,12 +59,11 @@ class Survey extends Component {
     return (
       <div>
         <h2>Survey</h2>
-        
         <div>
           <table className='surveyDetails'>
             <thead>
               <tr>
-                  <th>Code : {this.state.slug} </th>
+                  <th>Code : {this.props.match.params.slug} </th>
               </tr>
             </thead>
             <tbody>
@@ -63,12 +84,7 @@ class Survey extends Component {
                             <td><strong>{ survey.type }</strong></td>
                             <td>{ survey.label }</td>
                             <td>
-                              <ul>
-                                {this.renderSwitch(survey).map((result,index) => {
-                                return (
-                                  <li key={index}>{result}</li>
-                                )})}
-                              </ul>
+                              {this.renderSwitch(survey)}
                             </td>
                           </tr>
                         </tbody>
