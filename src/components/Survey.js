@@ -47,8 +47,11 @@ class Survey extends Component {
         return result;
       case 'date':
         result = param.result.sort()
-        const dateList = result.map((res, index) =>
-          <li key={index}>{res}</li>
+        const dateList = result.map((res, index) => {
+          let date = new Date(res);
+          let dateFormat = date.getDate() + "/" + (date.getMonth() + 1) + "/" + date.getFullYear();
+          return <li key={index}>{dateFormat}</li>
+        }
         );
         return <ul>{dateList}</ul>;
       default:
